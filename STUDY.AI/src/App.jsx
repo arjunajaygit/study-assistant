@@ -69,7 +69,14 @@ function App() {
       setIsProcessed(true)
       setDocStats({ count: files.length })
       setSidebarOpen(false) 
-    } catch (err) { alert("Upload failed! Is the backend running?") }
+    } catch (err) { 
+      // --- CHANGED: This will print the exact FastAPI error so we know what is missing ---
+      console.error("Backend rejected the upload:", err.response?.data);
+      const errorMsg = err.response?.data?.detail 
+        ? JSON.stringify(err.response.data.detail) 
+        : "Is the backend running?";
+      alert(`Upload failed! Error: ${errorMsg}`);
+    }
     setLoading(false)
   }
 
