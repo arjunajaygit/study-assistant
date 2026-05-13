@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react'
 import axios from 'axios'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
+import { v4 as uuidv4 } from 'uuid'
 import { 
   UploadCloud, Send, FileText, Bot, User, 
   Menu, X, Trash2, Sparkles, Circle, Layers
@@ -9,28 +10,39 @@ import {
 import './App.css'
 
 function App() {
-  const [files, setFiles] = useState([]) // Now an array of files!
+  const [files, setFiles] = useState([])
   const [question, setQuestion] = useState("")
   const [chat, setChat] = useState([])
   const [isProcessed, setIsProcessed] = useState(false)
   const [loading, setLoading] = useState(false)
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [docStats, setDocStats] = useState({ count: 0 })
+  const [sessionId, setSessionId] = useState("")
 
   const chatEndRef = useRef(null)
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" })
   }, [chat, loading])
 
+  // Initialize session ID from localStorage
+  useEffect(() => {
+    let storedSession = localStorage.getItem("study_session_id")
+    if (!storedSession) {
+      storedSession = uuidv4()
+      localStorage.setItem("study_session_id", storedSession)
+    }
+    setSessionId(storedSession)
+  }, [])
+
   const suggestions = ["Summarize key points", "What is the main argument?", "List important dates"]
 
-  // --- NEW: MULTI-FILE UPLOAD ---
+  // --- UPLOAD WITH SESSION ID ---
   const uploadFiles = async () => {
-    if (files.length === 0) return
+    if (files.length === 0 || !sessionId) return
     setLoading(true)
     
     const formData = new FormData()
-    // Append each file to the "files" array in the form
+    formData.append("session_id", sessionId)
     Array.from(files).forEach(file => {
       formData.append("files", file)
     })
@@ -45,10 +57,10 @@ function App() {
     setLoading(false)
   }
 
-  // --- NEW: SENDING HISTORY TO BACKEND ---
+  // --- QUERY WITH SESSION ID ---
   const askQuestion = async (qText) => {
     const input = qText || question
-    if (!input || !isProcessed) return
+    if (!input || !isProcessed || !sessionId) return
     
     // Create new chat history array
     const newHistory = [...chat, { sender: "You", text: input }]
@@ -57,10 +69,9 @@ function App() {
     setLoading(true)
 
     try {
-      // Send as JSON so Python can read the history list easily
       const payload = {
-        question: input,
-        history: chat // Send the PREVIOUS chat history
+        session_id: sessionId,
+        question: input
       }
       
       const res = await axios.post("https://study-assistant-backend-gldu.onrender.com/query", payload, {
