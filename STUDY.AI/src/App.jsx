@@ -70,7 +70,6 @@ function App() {
       setDocStats({ count: files.length })
       setSidebarOpen(false) 
     } catch (err) { 
-      // --- CHANGED: This will print the exact FastAPI error so we know what is missing ---
       console.error("Backend rejected the upload:", err.response?.data);
       const errorMsg = err.response?.data?.detail 
         ? JSON.stringify(err.response.data.detail) 
@@ -90,7 +89,6 @@ function App() {
     setLoading(true)
 
     try {
-      // --- NEW: Send session_id, REMOVE old history array ---
       const payload = {
         session_id: sessionId,
         question: input
@@ -110,9 +108,7 @@ function App() {
     setLoading(false)
   }
 
-  // --- NEW: CLEAR HISTORY FUNCTION ---
   const clearChat = () => {
-    // Generate a brand new session ID to wipe the slate clean
     const newSession = crypto.randomUUID();
     localStorage.setItem("study_session_id", newSession);
     setSessionId(newSession);
@@ -175,7 +171,7 @@ function App() {
               </h4>
             </div>
           </div>
-          {/* --- NEW: Changed to use the clearChat function --- */}
+          {}
           <button onClick={clearChat} title="Clear Chat & Restart" style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: '8px' }}>
             <Trash2 size={18} />
           </button>

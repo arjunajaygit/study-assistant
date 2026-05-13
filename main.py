@@ -31,7 +31,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# --- CONFIGURATION ---
 embeddings = HuggingFaceEndpointEmbeddings(
     huggingfacehub_api_token=os.environ.get("HF_TOKEN"),
     repo_id="sentence-transformers/all-MiniLM-L6-v2"
@@ -39,7 +38,6 @@ embeddings = HuggingFaceEndpointEmbeddings(
 llm = ChatGroq(model_name="llama-3.1-8b-instant") 
 chroma_client = chromadb.PersistentClient(path="./chroma_db")
 
-# --- SQLITE DATABASE SETUP (Conversational Memory) ---
 def init_db():
     conn = sqlite3.connect("chat_history.db")
     cursor = conn.cursor()
@@ -57,12 +55,10 @@ def init_db():
 
 init_db()
 
-# --- HELPER FUNCTIONS ---
 def get_chat_history(session_id: str, limit: int = 6):
     """Fetches the last N messages for a specific session to prevent context overflow."""
     conn = sqlite3.connect("chat_history.db")
     cursor = conn.cursor()
-    # Get the last 'limit' messages, ordered by oldest to newest
     cursor.execute("""
         SELECT sender, text FROM (
             SELECT sender, text, timestamp FROM messages 
@@ -90,20 +86,17 @@ def save_message(session_id: str, sender: str, text: str):
     conn.commit()
     conn.close()
 
-# --- API MODELS ---
 class QueryRequest(BaseModel):
-    session_id: str # Crucial for identifying the user
+    session_id: str 
     question: str
 
-# --- ENDPOINTS ---
 
 @app.post("/upload")
 async def upload_files(
-    session_id: str = Form(...), # Require session_id from frontend
+    session_id: str = Form(...), 
     files: List[UploadFile] = File(...)
 ):
     try:
-        # 1. Create a unique collection for this specific user/session
         collection_name = f"study_notes_{session_id}"
         
         all_splits = []
@@ -121,7 +114,6 @@ async def upload_files(
 
             os.remove(file_location)
 
-        # 2. Append to the user's collection (No more delete_collection!)
         vectorstore = Chroma.from_documents(
             documents=all_splits, 
             embedding=embeddings, 
@@ -137,7 +129,6 @@ async def upload_files(
 async def query_notes(request: QueryRequest):
     collection_name = f"study_notes_{request.session_id}"
     
-    # 1. Check if the user has uploaded anything yet
     try:
         vectorstore = Chroma(
             persist_directory="./chroma_db", 
@@ -147,10 +138,8 @@ async def query_notes(request: QueryRequest):
     except:
         raise HTTPException(status_code=400, detail="Please upload a document first.")
 
-    # 2. Reduced 'k' to 6 to prevent context window stuffing
     retriever = vectorstore.as_retriever(search_kwargs={"k": 6})
 
-    # 3. Retrieve only the last 6 messages from the database
     chat_history = get_chat_history(request.session_id, limit=6)
 
     contextualize_q_prompt = ChatPromptTemplate.from_messages([
@@ -168,17 +157,14 @@ async def query_notes(request: QueryRequest):
     question_answer_chain = create_stuff_documents_chain(llm, qa_prompt)
     rag_chain = create_retrieval_chain(history_aware_retriever, question_answer_chain)
 
-    # 4. Invoke RAG
     response = rag_chain.invoke({
         "input": request.question,
         "chat_history": chat_history
     })
     
-    # 5. Save the new interaction to the database
     save_message(request.session_id, "You", request.question)
     save_message(request.session_id, "AI", response["answer"])
     
-    # Extract Sources
     source_info = []
     for doc in response["context"]:
         file_path = doc.metadata.get("source", "Unknown")

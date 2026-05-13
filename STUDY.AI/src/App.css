@@ -36,14 +36,9 @@ h3,
 h4,
 .syne-font {
   font-family: 'Syne', sans-serif;
-  line-height: 1.4 !important; /* <--- ADD THIS */
-  padding-bottom: 2px;         /* <--- ADD THIS (Gives flex containers a tiny bit of bottom buffer) */
-}
-
-/* =========================
-   APP LAYOUT & SIDEBAR
-========================= */
-
+  line-height: 1.4 !important;  
+  padding-bottom: 2px;         
+}  
 .app-container {
   display: flex;
   width: 100%;
@@ -68,9 +63,7 @@ h4,
 .sidebar::-webkit-scrollbar { width: 6px; }
 .sidebar::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 10px; }
 
-/* =========================
-   MAIN CONTENT & HEADER
-========================= */
+
 
 .main-content {
   flex: 1;
@@ -91,9 +84,7 @@ h4,
   background: var(--bg-deep);
 }
 
-/* =========================
-   CHAT AREA
-========================= */
+
 
 .chat-container {
   flex: 1;
@@ -115,9 +106,7 @@ h4,
 .chat-container::-webkit-scrollbar { width: 8px; }
 .chat-container::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 20px; }
 
-/* =========================
-   CHAT MESSAGES
-========================= */
+
 
 .message-row {
   display: flex;
@@ -202,9 +191,6 @@ h4,
   background: rgba(255, 255, 255, 0.05);
 }
 
-/* =========================
-   INPUT AREA
-========================= */
 
 .input-container {
   flex-shrink: 0;
@@ -240,9 +226,6 @@ h4,
 }
 .chat-input::placeholder { color: var(--text-muted); }
 
-/* =========================
-   BUTTONS
-========================= */
 
 .send-button {
   border: none;
@@ -270,9 +253,6 @@ h4,
   background: var(--accent-violet) !important;
 }
 
-/* =========================
-   SUGGESTIONS & TYPING
-========================= */
 
 .suggestion-container {
   display: flex;
@@ -327,10 +307,6 @@ h4,
   50% { transform: translateY(-8px); }
   100% { transform: translateY(0px); }
 }
-
-/* =========================
-   MOBILE
-========================= */
 
 .mobile-only { display: none; cursor: pointer; }
 .overlay { display: none; }
