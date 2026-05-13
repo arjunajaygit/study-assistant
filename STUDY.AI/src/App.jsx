@@ -36,7 +36,7 @@ function App() {
     })
 
     try {
-      const res = await axios.post("https://study-assistant-backend-gldu.onrender.com/upload", formData)
+      const res = await axios.post(`${import.meta.env.VITE_API_URL}/upload`, formData)
       setIsProcessed(true)
       setDocStats({ count: files.length })
       setChat([])
@@ -63,7 +63,7 @@ function App() {
         history: chat // Send the PREVIOUS chat history
       }
       
-      const res = await axios.post("https://study-assistant-backend-gldu.onrender.com/query", payload, {
+      const res = await axios.post(`${import.meta.env.VITE_API_URL}/query`, payload, {
         headers: { 'Content-Type': 'application/json' }
       })
       
