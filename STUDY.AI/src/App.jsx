@@ -2,7 +2,6 @@ import { useState, useRef, useEffect } from 'react'
 import axios from 'axios'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
-import { v4 as uuidv4 } from 'uuid'
 import { 
   UploadCloud, Send, FileText, Bot, User, 
   Menu, X, Trash2, Sparkles, Circle, Layers
@@ -10,39 +9,57 @@ import {
 import './App.css'
 
 function App() {
-  const [files, setFiles] = useState([])
+  const [files, setFiles] = useState([]) 
   const [question, setQuestion] = useState("")
   const [chat, setChat] = useState([])
   const [isProcessed, setIsProcessed] = useState(false)
   const [loading, setLoading] = useState(false)
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [docStats, setDocStats] = useState({ count: 0 })
-  const [sessionId, setSessionId] = useState("")
+  const [sessionId, setSessionId] = useState("") // --- NEW: Session State ---
 
   const chatEndRef = useRef(null)
+  
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" })
   }, [chat, loading])
 
-  // Initialize session ID from localStorage
+  // --- NEW: FETCH HISTORY ON PAGE LOAD ---
   useEffect(() => {
-    let storedSession = localStorage.getItem("study_session_id")
+    // 1. Get or create a session ID
+    let storedSession = localStorage.getItem("study_session_id");
     if (!storedSession) {
-      storedSession = uuidv4()
-      localStorage.setItem("study_session_id", storedSession)
+      storedSession = crypto.randomUUID(); // Built-in browser function
+      localStorage.setItem("study_session_id", storedSession);
     }
-    setSessionId(storedSession)
-  }, [])
+    setSessionId(storedSession);
+
+    // 2. Fetch history from the backend
+    const fetchHistory = async () => {
+      try {
+        const res = await axios.get(`https://study-assistant-backend-gldu.onrender.com/history/${storedSession}`);
+        if (res.data.history && res.data.history.length > 0) {
+          setChat(res.data.history);
+          setIsProcessed(true); // If they have history, they've already uploaded files
+        }
+      } catch (err) {
+        console.log("No previous history or server waking up.");
+      }
+    };
+
+    fetchHistory();
+  }, []);
 
   const suggestions = ["Summarize key points", "What is the main argument?", "List important dates"]
 
-  // --- UPLOAD WITH SESSION ID ---
   const uploadFiles = async () => {
-    if (files.length === 0 || !sessionId) return
+    if (files.length === 0) return
     setLoading(true)
     
     const formData = new FormData()
-    formData.append("session_id", sessionId)
+    // --- NEW: Add session_id to formData ---
+    formData.append("session_id", sessionId) 
+    
     Array.from(files).forEach(file => {
       formData.append("files", file)
     })
@@ -51,24 +68,22 @@ function App() {
       const res = await axios.post("https://study-assistant-backend-gldu.onrender.com/upload", formData)
       setIsProcessed(true)
       setDocStats({ count: files.length })
-      setChat([])
       setSidebarOpen(false) 
     } catch (err) { alert("Upload failed! Is the backend running?") }
     setLoading(false)
   }
 
-  // --- QUERY WITH SESSION ID ---
   const askQuestion = async (qText) => {
     const input = qText || question
-    if (!input || !isProcessed || !sessionId) return
+    if (!input || !isProcessed) return
     
-    // Create new chat history array
     const newHistory = [...chat, { sender: "You", text: input }]
     setChat(newHistory)
     setQuestion("")
     setLoading(true)
 
     try {
+      // --- NEW: Send session_id, REMOVE old history array ---
       const payload = {
         session_id: sessionId,
         question: input
@@ -86,6 +101,16 @@ function App() {
       }])
     } catch (err) { setChat(prev => [...prev, { sender: "AI", text: "Error connecting to server." }]) }
     setLoading(false)
+  }
+
+  // --- NEW: CLEAR HISTORY FUNCTION ---
+  const clearChat = () => {
+    // Generate a brand new session ID to wipe the slate clean
+    const newSession = crypto.randomUUID();
+    localStorage.setItem("study_session_id", newSession);
+    setSessionId(newSession);
+    setChat([]);
+    setIsProcessed(false);
   }
 
   return (
@@ -111,7 +136,6 @@ function App() {
             <p style={{ color: 'var(--text-main)', fontSize: '14px', fontWeight: '500', marginBottom: '8px' }}>
               {files.length > 0 ? `${files.length} document(s) selected` : "Drag & Drop PDFs"}
             </p>
-            {/* Added "multiple" attribute here! */}
             <input type="file" id="files" multiple hidden accept=".pdf" onChange={(e) => setFiles(e.target.files)} />
             <label htmlFor="files" style={{ color: 'var(--accent-violet)', fontSize: '13px', cursor: 'pointer', fontWeight: '600' }}>Browse Files</label>
           </div>
@@ -140,11 +164,12 @@ function App() {
               <p style={{ fontSize: '11px', color: 'var(--text-muted)', letterSpacing: '0.5px', textTransform: 'uppercase', marginBottom: '4px' }}>ACTIVE KNOWLEDGE BASE</p>
               <h4 style={{ fontSize: '14px', display: 'flex', alignItems: 'center', gap: '8px', fontWeight: '500' }}>
                 <Circle size={10} fill={isProcessed ? "#10b981" : "#ef4444"} stroke="none" />
-                {isProcessed ? `${docStats.count} Document(s) Synced` : "Awaiting Upload..."}
+                {isProcessed ? "Knowledge Synced" : "Awaiting Upload..."}
               </h4>
             </div>
           </div>
-          <button onClick={() => setChat([])} title="Clear Chat" style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: '8px' }}>
+          {/* --- NEW: Changed to use the clearChat function --- */}
+          <button onClick={clearChat} title="Clear Chat & Restart" style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: '8px' }}>
             <Trash2 size={18} />
           </button>
         </div>
