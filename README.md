@@ -1,5 +1,7 @@
 # 📚 STUDY.AI
 
+> 🚧 **Note:** This project is currently in active development. Features, UI, and API endpoints are subject to change as improvements are being made.
+
 An AI-powered RAG (Retrieval-Augmented Generation) study assistant that allows users to upload PDFs and interact with them through context-aware conversations.
 
 🌐 **Live Demo:** [https://study-assistant-xii-seven.vercel.app/](https://study-assistant-xii-seven.vercel.app/)
